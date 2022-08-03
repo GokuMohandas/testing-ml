@@ -12,12 +12,18 @@ Learn how to create reliable ML systems by testing code, data and models.
 
 <br>
 
-👉 &nbsp;This repository is an isolated version of the much more comprehensive [testing lesson](https://madewithml.com/courses/mlops/testing/), which is a part of our free [mlops course](https://madewithml.com/). Use this repository to learn how to test ML systems but be sure to explore the [mlops-course](https://github.com/GokuMohandas/mlops-course) repository to learn how to tie testing workflows with all the other parts of ML system development.
+👉 &nbsp;This repository contains the [interactive notebook](https://colab.research.google.com/github/GokuMohandas/testing-ml/blob/main/testing.ipynb) that complements the [testing lesson](https://madewithml.com/courses/mlops/testing/), which is a part of the [MLOps course](https://github.com/GokuMohandas/mlops-course). If you haven't already, be sure to check out the [lesson](https://madewithml.com/courses/mlops/testing/) because all the concepts are covered extensively and tied to software engineering best practices for building ML systems.
+
+<div align="left">
+<a target="_blank" href="https://madewithml.com/courses/mlops/testing/"><img src="https://img.shields.io/badge/📖 Read-lesson-9cf"></a>&nbsp;
+<a href="https://github.com/GokuMohandas/testing-ml/blob/main/testing.ipynb" role="button"><img src="https://img.shields.io/static/v1?label=&amp;message=View%20On%20GitHub&amp;color=586069&amp;logo=github&amp;labelColor=2f363d"></a>&nbsp;
+<a href="https://colab.research.google.com/github/GokuMohandas/testing-ml/blob/main/testing.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
+</div>
+
+<br>
 
 - [Data](#data)
-    - [Rows and columns](#rows-and-columns)
-    - [Individual values](#individual-values)
-    - [Aggregate values](#aggregate-values)
+    - [Expectations](#expectations)
     - [Production](#production)
 - [Models](#models)
     - [Training](#training)
@@ -25,14 +31,12 @@ Learn how to create reliable ML systems by testing code, data and models.
     - [Adversarial](#adversarial)
     - [Inference](#inference)
 
-📓 &nbsp;Run all the code without any setup via our [interactive notebook](https://colab.research.google.com/github/GokuMohandas/mlops-course/blob/main/notebooks/testing.ipynb).
+## Data
 
-## 🔢&nbsp; Data
-
-Tools such as [pytest](https://madewithml.com/courses/mlops/testing/#pytest) allow us to test the functions that interact with our data but not the validity of the data itself. We're going to use the [great expectations](https://github.com/great-expectations/great_expectations) library to test what our data is expected to look like.
+Tools such as [pytest](https://madewithml.com/courses/mlops/testing/#pytest) allow us to test the functions that interact with our data but not the validity of the data itself. We're going to use the [great expectations](https://github.com/great-expectations/great_expectations) library to create expectations as to what our data should look like in a standardized way.
 
 ```bash
-pip install great-expectations==0.15.15
+!pip install great-expectations==0.15.15 -q
 ```
 
 ```python
@@ -108,65 +112,58 @@ df.head(5)
 </table>
 </div></div>
 
+### Expectations
 
-### Rows and columns
-
-The most basic expectation is validating the presence of samples (rows) and features (columns). These can help identify inconsistencies between upstream backend database schema changes, upstream UI form changes, etc.
-
-- presence of specific features
+When it comes to creating expectations as to what our data should look like, we want to think about our entire dataset and all the features (columns) within it.
 
 ```python
+# Presence of specific features
 df.expect_table_columns_to_match_ordered_list(
     column_list=["id", "created_on", "title", "description", "tag"]
 )
 ```
 
-- unique combinations of features (detect data leaks!)
-
 ```python
+# Unique combinations of features (detect data leaks!)
 df.expect_compound_columns_to_be_unique(column_list=["title", "description"])
 ```
 
-- row count (exact or range) of samples
-
-### Individual values
-
-We can also have expectations about the individual values of specific features.
-
-- missing values
-
 ```python
+# Missing values
 df.expect_column_values_to_not_be_null(column="tag")
 ```
 
-- type adherence (ex. text features are of type `str`)
-
 ```python
-df.expect_column_values_to_be_of_type(column="title", type_="str")
-```
-
-- values must be unique or from a predefined set
-
-```python
+# Unique values
 df.expect_column_values_to_be_unique(column="id")
 ```
 
-- list (categorical) / range (continuous) of allowed values
-- feature value relationships with other feature values (ex. column 1 values must always be greater than column 2)
+```python
+# Type adherence
+df.expect_column_values_to_be_of_type(column="title", type_="str")
+```
 
-### Aggregate values
+```python
+# List (categorical) / range (continuous) of allowed values
+tags = ["computer-vision", "graph-learning", "reinforcement-learning",
+        "natural-language-processing", "mlops", "time-series"]
+df.expect_column_values_to_be_in_set(column="tag", value_set=tags)
+```
 
-We can also set expectations about all the values of specific features.
+There are just a few of the different expectations that we can create. Be sure to explore all the [expectations](https://greatexpectations.io/expectations/), including [custom expectations](https://docs.greatexpectations.io/docs/guides/expectations/creating_custom_expectations/overview/). Here are some other popular expectations that don't pertain to our specific dataset but are widely applicable:
 
-- value statistics (mean, std, median, max, min, sum, etc.)
-- distribution shift by comparing current values to previous values (useful for detecting drift)
+- feature value relationships with other feature values → `expect_column_pair_values_a_to_be_greater_than_b`
+- row count (exact or range) of samples → `expect_table_row_count_to_be_between`
+- value statistics (mean, std, median, max, min, sum, etc.) → `expect_column_mean_to_be_between`
 
 ### Production
 
 The advantage of using a library such as great expectations, as opposed to isolated assert statements is that we can:
 
-- quickly apply tests using the SDK (and create custom ones) as opposed to writing tests from scratch (error prone).
-- automatically create testing checkpoints to execute as our dataset grows
+- reduce redundant efforts for creating tests across data modalities
+- automatically create testing [checkpoints](https://madewithml.com/courses/mlops/testing#checkpoints) to execute as our dataset grows
+- automatically generate [documentation](https://madewithml.com/courses/mlops/testing#documentation) on expectations and report on runs
+- easily connect with backend data sources such as local file systems, S3, databases, etc.
 
 ```python
 # Run all tests on our DataFrame at once
@@ -174,11 +171,24 @@ expectation_suite = df.get_expectation_suite(discard_failed_expectations=False)
 df.validate(expectation_suite=expectation_suite, only_return_failures=True)
 ```
 
-This becomes especially crucial as data tests are moved away from individual repositories and applied in [DataOps workflows](https://madewithml.com/courses/mlops/orchestration/#dataops) for many downstream consumers to reliable use.
+```json
+"success": true,
+"evaluation_parameters": {},
+"results": [],
+"statistics": {
+    "evaluated_expectations": 6,
+    "successful_expectations": 6,
+    "unsuccessful_expectations": 0,
+    "success_percent": 100.0
+}
+```
+
+Many of these expectations will be executed when the data is extracted, loaded and transformed during our [DataOps workflows](https://madewithml.com/courses/mlops/orchestration#dataops). Typically, the data will be extracted from a source ([database](https://madewithml.com/courses/mlops/data-stack#database), [API](https://madewithml.com/courses/mlops/api), etc.) and loaded into a data system (ex. [data warehouse](https://madewithml.com/courses/mlops/data-stack#data-warehouse)) before being transformed there (ex. using [dbt](https://www.getdbt.com/)) for downstream applications. Throughout these tasks, Great Expectations checkpoint validations can be run to ensure the validity of the data and the changes applied to it.
 
 <img width="700" src="https://madewithml.com/static/images/mlops/testing/production.png" alt="ETL pipelines in production">
 
-## 🤖&nbsp; Models
+
+## Models
 
 Once we've tested our data, we can use it for downstream applications such as training machine learning models. It's important that we also test these model artifacts to ensure reliable behavior in our application.
 
@@ -266,6 +276,7 @@ predict.predict(texts=texts, artifacts=artifacts)
 When our model is deployed, most users will be using it for inference (directly / indirectly), so it's very important that we test all aspects of it.
 
 #### Loading artifacts
+
 This is the first time we're not loading our components from in-memory so we want to ensure that the required artifacts (model weights, encoders, config, etc.) are all able to be loaded.
 
 ```python
@@ -275,6 +286,7 @@ assert isinstance(artifacts["label_encoder"], data.LabelEncoder)
 ```
 
 #### Prediction
+
 Once we have our artifacts loaded, we're readying to test our prediction pipelines. We should test samples with just one input, as well as a batch of inputs (ex. padding can have unintended consequences sometimes).
 ```python
 # test our API call directly
