@@ -47,10 +47,10 @@ from urllib.request import urlopen
 ```
 
 ```python
-# Load projects
-url = "https://raw.githubusercontent.com/GokuMohandas/Made-With-ML/main/datasets/projects.json"
-projects = json.loads(urlopen(url).read())
-df = ge.dataset.PandasDataset(projects)
+# Load labeled projects
+projects = pd.read_csv("https://raw.githubusercontent.com/GokuMohandas/Made-With-ML/main/datasets/projects.csv")
+tags = pd.read_csv("https://raw.githubusercontent.com/GokuMohandas/Made-With-ML/main/datasets/tags.csv")
+df = ge.dataset.PandasDataset(pd.merge(projects, tags, on="id"))
 print (f"{len(df)} projects")
 df.head(5)
 ```
